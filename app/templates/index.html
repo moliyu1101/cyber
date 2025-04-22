@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网络攻击工具</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            max-width: 800px;
+        }
+        .card {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #252525;
+            color: #fff;
+            font-weight: bold;
+            border-bottom: 1px solid #333;
+        }
+        .form-control, .form-select {
+            background-color: #2a2a2a;
+            border-color: #444;
+            color: #e0e0e0;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: #2d2d2d;
+            border-color: #666;
+            color: #fff;
+            box-shadow: 0 0 0 0.25rem rgba(66, 70, 73, 0.5);
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+        .btn-warning {
+            background-color: #ffc107;
+            border-color: #ffc107;
+            color: #000;
+        }
+        .status-box {
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: none;
+        }
+        .status-success {
+            background-color: rgba(25, 135, 84, 0.2);
+            border: 1px solid #198754;
+        }
+        .status-error {
+            background-color: rgba(220, 53, 69, 0.2);
+            border: 1px solid #dc3545;
+        }
+        .nav-tabs {
+            border-bottom: 1px solid #333;
+        }
+        .nav-tabs .nav-link {
+            color: #aaa;
+            border: 1px solid transparent;
+        }
+        .nav-tabs .nav-link.active {
+            color: #0d6efd;
+            background-color: #252525;
+            border-color: #333 #333 #252525;
+        }
+        .nav-tabs .nav-link:hover {
+            border-color: #333 #333 #333;
+            color: #fff;
+        }
+        .disclaimer {
+            font-size: 12px;
+            color: #ff6b6b;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: rgba(255, 107, 107, 0.1);
+            border-radius: 5px;
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+        .progress {
+            background-color: #333;
+            height: 20px;
+            margin-top: 15px;
+        }
+        .progress-bar {
+            background-color: #0d6efd;
+        }
+        .stats-card {
+            background-color: #252525;
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            display: none;
+        }
+        .stats-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        .btn-stop {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="text-center mb-4">
+            <h1><i class="bi bi-shield-exclamation"></i> 网络攻击测试工具</h1>
+            <p class="lead">用于测试网络安全的TCP SYN洪水和ARP欺骗工具</p>
+        </div>
+
+        <ul class="nav nav-tabs mb-4" id="attackTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="syn-tab" data-bs-toggle="tab" data-bs-target="#syn" type="button" role="tab" aria-controls="syn" aria-selected="true">
+                    <i class="bi bi-tsunami"></i> TCP SYN洪水
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="arp-tab" data-bs-toggle="tab" data-bs-target="#arp" type="button" role="tab" aria-controls="arp" aria-selected="false">
+                    <i class="bi bi-wifi"></i> ARP欺骗
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="attackTabsContent">
+            <!-- TCP SYN洪水攻击表单 -->
+            <div class="tab-pane fade show active" id="syn" role="tabpanel" aria-labelledby="syn-tab">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-tsunami"></i> TCP SYN洪水攻击
+                    </div>
+                    <div class="card-body">
+                        <form id="synFloodForm">
+                            <div class="mb-3">
+                                <label for="synTargetIp" class="form-label">目标IP地址</label>
+                                <input type="text" class="form-control" id="synTargetIp" placeholder="例如: 192.168.1.1" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="synTargetPort" class="form-label">目标端口</label>
+                                <input type="number" class="form-control" id="synTargetPort" min="1" max="65535" placeholder="例如: 80" required>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="synAttackTime" class="form-label">攻击持续时间(秒)</label>
+                                    <input type="number" class="form-control" id="synAttackTime" min="10" max="300" value="60">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="synThreads" class="form-label">线程数</label>
+                                    <input type="number" class="form-control" id="synThreads" min="1" max="100" value="10">
+                                </div>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-danger" id="synStartBtn">
+                                    <i class="bi bi-lightning-charge"></i> 开始TCP SYN洪水攻击
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div id="synStatus" class="status-box"></div>
+                
+                <!-- SYN攻击进度显示 -->
+                <div id="synProgressCard" class="stats-card">
+                    <div class="stats-title">
+                        <i class="bi bi-activity"></i> 攻击进度
+                    </div>
+                    
+                    <div class="progress">
+                        <div id="synProgressBar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+                    
+                    <div class="stats-content mt-3">
+                        <div class="stats-item">
+                            <span>目标:</span>
+                            <span id="synTargetDisplay">-</span>
+                        </div>
+                        <div class="stats-item">
+                            <span>已发送数据包:</span>
+                            <span id="synPacketsSent">0</span>
+                        </div>
+                        <div class="stats-item">
+                            <span>已运行时间:</span>
+                            <span id="synRuntime">0秒</span>
+                        </div>
+                        <div class="stats-item">
+                            <span>状态:</span>
+                            <span id="synStatusDisplay">运行中</span>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button id="synStopBtn" class="btn btn-warning btn-stop">
+                            <i class="bi bi-stop-circle"></i> 停止攻击
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ARP欺骗攻击表单 -->
+            <div class="tab-pane fade" id="arp" role="tabpanel" aria-labelledby="arp-tab">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-wifi"></i> ARP欺骗攻击
+                    </div>
+                    <div class="card-body">
+                        <form id="arpSpoofForm">
+                            <div class="mb-3">
+                                <label for="arpTargetIp" class="form-label">目标IP地址</label>
+                                <input type="text" class="form-control" id="arpTargetIp" placeholder="例如: 192.168.1.100" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="arpGatewayIp" class="form-label">网关IP地址 (可选，留空自动检测)</label>
+                                <input type="text" class="form-control" id="arpGatewayIp" placeholder="例如: 192.168.1.1">
+                            </div>
+                            <div class="mb-3">
+                                <label for="arpInterface" class="form-label">网络接口 (可选，留空自动检测)</label>
+                                <input type="text" class="form-control" id="arpInterface" placeholder="例如: eth0, en0">
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-danger" id="arpStartBtn">
+                                    <i class="bi bi-wifi-off"></i> 开始ARP欺骗攻击
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div id="arpStatus" class="status-box"></div>
+                
+                <!-- ARP攻击进度显示 -->
+                <div id="arpProgressCard" class="stats-card">
+                    <div class="stats-title">
+                        <i class="bi bi-activity"></i> 攻击进度
+                    </div>
+                    
+                    <div class="stats-content mt-3">
+                        <div class="stats-item">
+                            <span>目标:</span>
+                            <span id="arpTargetDisplay">-</span>
+                        </div>
+                        <div class="stats-item">
+                            <span>已发送ARP包:</span>
+                            <span id="arpPacketsSent">0</span>
+                        </div>
+                        <div class="stats-item">
+                            <span>已运行时间:</span>
+                            <span id="arpRuntime">0秒</span>
+                        </div>
+                        <div class="stats-item">
+                            <span>状态:</span>
+                            <span id="arpStatusDisplay">运行中</span>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button id="arpStopBtn" class="btn btn-warning btn-stop">
+                            <i class="bi bi-stop-circle"></i> 停止攻击
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="disclaimer">
+            <p class="m-0"><strong>免责声明：</strong> 本工具仅供网络安全测试和教育目的使用。未经授权对计算机系统和网络进行攻击属于违法行为。使用者需承担所有法律责任。</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 全局变量，保存当前活跃的攻击ID
+            let activeSynAttackId = null;
+            let activeArpAttackId = null;
+            
+            // 状态更新间隔(毫秒)
+            const STATUS_UPDATE_INTERVAL = 1000;
+            
+            // SYN攻击状态更新定时器
+            let synStatusTimer = null;
+            
+            // ARP攻击状态更新定时器
+            let arpStatusTimer = null;
+            
+            // 格式化时间(秒)为可读格式
+            function formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins}分${secs}秒`;
+            }
+            
+            // 重置SYN攻击表单
+            function resetSynForm() {
+                // 保存之前的表单值，以便重新填充
+                const targetIp = document.getElementById('synTargetIp').value;
+                const targetPort = document.getElementById('synTargetPort').value;
+                const attackTime = document.getElementById('synAttackTime').value;
+                const threads = document.getElementById('synThreads').value;
+                
+                // 清除当前攻击ID
+                activeSynAttackId = null;
+                
+                // 停止状态更新
+                if (synStatusTimer) {
+                    clearInterval(synStatusTimer);
+                    synStatusTimer = null;
+                }
+                
+                // 更改停止按钮为重新开始按钮
+                const synStopBtn = document.getElementById('synStopBtn');
+                synStopBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> 重新开始攻击';
+                synStopBtn.className = 'btn btn-primary btn-stop';
+                synStopBtn.onclick = function() {
+                    // 将表单值重新填入
+                    document.getElementById('synTargetIp').value = targetIp;
+                    document.getElementById('synTargetPort').value = targetPort;
+                    document.getElementById('synAttackTime').value = attackTime;
+                    document.getElementById('synThreads').value = threads;
+                    
+                    // 触发表单提交
+                    document.getElementById('synFloodForm').dispatchEvent(new Event('submit'));
+                    
+                    // 恢复停止按钮
+                    synStopBtn.innerHTML = '<i class="bi bi-stop-circle"></i> 停止攻击';
+                    synStopBtn.className = 'btn btn-warning btn-stop';
+                    synStopBtn.onclick = null;
+                    addSynStopButtonHandler();
+                };
+            }
+            
+            // 重置ARP攻击表单
+            function resetArpForm() {
+                // 保存之前的表单值，以便重新填充
+                const targetIp = document.getElementById('arpTargetIp').value;
+                const gatewayIp = document.getElementById('arpGatewayIp').value;
+                const interface = document.getElementById('arpInterface').value;
+                
+                // 清除当前攻击ID
+                activeArpAttackId = null;
+                
+                // 停止状态更新
+                if (arpStatusTimer) {
+                    clearInterval(arpStatusTimer);
+                    arpStatusTimer = null;
+                }
+                
+                // 更改停止按钮为重新开始按钮
+                const arpStopBtn = document.getElementById('arpStopBtn');
+                arpStopBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> 重新开始攻击';
+                arpStopBtn.className = 'btn btn-primary btn-stop';
+                arpStopBtn.onclick = function() {
+                    // 将表单值重新填入
+                    document.getElementById('arpTargetIp').value = targetIp;
+                    document.getElementById('arpGatewayIp').value = gatewayIp;
+                    document.getElementById('arpInterface').value = interface;
+                    
+                    // 触发表单提交
+                    document.getElementById('arpSpoofForm').dispatchEvent(new Event('submit'));
+                    
+                    // 恢复停止按钮
+                    arpStopBtn.innerHTML = '<i class="bi bi-stop-circle"></i> 停止攻击';
+                    arpStopBtn.className = 'btn btn-warning btn-stop';
+                    arpStopBtn.onclick = null;
+                    addArpStopButtonHandler();
+                };
+            }
+            
+            // 更新SYN攻击状态
+            function updateSynAttackStatus() {
+                if (!activeSynAttackId) return;
+                
+                fetch(`/syn_flood/status?attack_id=${activeSynAttackId}`)
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status === 'success') {
+                            const stats = result.stats;
+                            const isActive = result.is_active;
+                            
+                            // 更新进度条
+                            const progress = Math.min(100, Math.round(stats.progress));
+                            document.getElementById('synProgressBar').style.width = `${progress}%`;
+                            document.getElementById('synProgressBar').textContent = `${progress}%`;
+                            document.getElementById('synProgressBar').setAttribute('aria-valuenow', progress);
+                            
+                            // 更新统计信息
+                            document.getElementById('synPacketsSent').textContent = stats.packets_sent.toLocaleString();
+                            
+                            // 计算运行时间
+                            const runtime = Math.round((new Date().getTime() / 1000) - stats.start_time);
+                            document.getElementById('synRuntime').textContent = formatTime(runtime);
+                            
+                            // 检查攻击是否已完成
+                            if (!isActive || progress >= 100) {
+                                document.getElementById('synStatusDisplay').textContent = '已完成';
+                                document.getElementById('synStatusDisplay').classList.add('text-success');
+                                document.getElementById('synStatusDisplay').classList.remove('text-warning');
+                                document.getElementById('synProgressBar').classList.add('bg-success');
+                                
+                                // 将停止按钮变为重新开始按钮
+                                resetSynForm();
+                            } else {
+                                document.getElementById('synStatusDisplay').textContent = '运行中';
+                                document.getElementById('synStatusDisplay').classList.add('text-warning');
+                                document.getElementById('synStatusDisplay').classList.remove('text-success');
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('获取SYN攻击状态失败:', error);
+                    });
+            }
+            
+            // 更新ARP攻击状态
+            function updateArpAttackStatus() {
+                if (!activeArpAttackId) return;
+                
+                fetch(`/arp_spoof/status?attack_id=${activeArpAttackId}`)
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status === 'success') {
+                            const stats = result.stats;
+                            const isActive = result.is_active;
+                            
+                            // 更新统计信息
+                            document.getElementById('arpPacketsSent').textContent = stats.packets_sent.toLocaleString();
+                            
+                            // 计算运行时间
+                            const runtime = Math.round((new Date().getTime() / 1000) - stats.start_time);
+                            document.getElementById('arpRuntime').textContent = formatTime(runtime);
+                            
+                            // 检查攻击是否已停止
+                            if (!isActive) {
+                                document.getElementById('arpStatusDisplay').textContent = '已停止';
+                                document.getElementById('arpStatusDisplay').classList.add('text-success');
+                                document.getElementById('arpStatusDisplay').classList.remove('text-warning');
+                                
+                                // 将停止按钮变为重新开始按钮
+                                resetArpForm();
+                            } else {
+                                document.getElementById('arpStatusDisplay').textContent = '运行中';
+                                document.getElementById('arpStatusDisplay').classList.add('text-warning');
+                                document.getElementById('arpStatusDisplay').classList.remove('text-success');
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('获取ARP攻击状态失败:', error);
+                    });
+            }
+            
+            // 为SYN停止按钮添加事件处理器
+            function addSynStopButtonHandler() {
+                document.getElementById('synStopBtn').addEventListener('click', function stopSynAttack() {
+                    if (!activeSynAttackId) return;
+                    
+                    fetch('/syn_flood/stop', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ attack_id: activeSynAttackId })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status === 'success') {
+                            const statusBox = document.getElementById('synStatus');
+                            statusBox.className = 'status-box status-success';
+                            statusBox.innerHTML = `<strong>成功：</strong> ${result.message}`;
+                            
+                            // 更新状态显示
+                            document.getElementById('synStatusDisplay').textContent = '已停止';
+                            document.getElementById('synStatusDisplay').classList.add('text-success');
+                            document.getElementById('synStatusDisplay').classList.remove('text-warning');
+                            
+                            // 设置进度条为100%
+                            document.getElementById('synProgressBar').style.width = '100%';
+                            document.getElementById('synProgressBar').textContent = '100%';
+                            document.getElementById('synProgressBar').setAttribute('aria-valuenow', 100);
+                            document.getElementById('synProgressBar').classList.add('bg-success');
+                            
+                            // 将停止按钮变为重新开始按钮
+                            resetSynForm();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('停止SYN攻击失败:', error);
+                    });
+                    
+                    // 移除事件处理器避免重复绑定
+                    this.removeEventListener('click', stopSynAttack);
+                });
+            }
+            
+            // 为ARP停止按钮添加事件处理器
+            function addArpStopButtonHandler() {
+                document.getElementById('arpStopBtn').addEventListener('click', function stopArpAttack() {
+                    if (!activeArpAttackId) return;
+                    
+                    fetch('/arp_spoof/stop', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ attack_id: activeArpAttackId })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status === 'success') {
+                            const statusBox = document.getElementById('arpStatus');
+                            statusBox.className = 'status-box status-success';
+                            statusBox.innerHTML = `<strong>成功：</strong> ${result.message}`;
+                            
+                            // 更新状态显示
+                            document.getElementById('arpStatusDisplay').textContent = '已停止';
+                            document.getElementById('arpStatusDisplay').classList.add('text-success');
+                            document.getElementById('arpStatusDisplay').classList.remove('text-warning');
+                            
+                            // 将停止按钮变为重新开始按钮
+                            resetArpForm();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('停止ARP攻击失败:', error);
+                    });
+                    
+                    // 移除事件处理器避免重复绑定
+                    this.removeEventListener('click', stopArpAttack);
+                });
+            }
+            
+            // TCP SYN洪水攻击表单提交
+            document.getElementById('synFloodForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // 获取表单数据
+                const targetIp = document.getElementById('synTargetIp').value;
+                const targetPort = document.getElementById('synTargetPort').value;
+                const attackTime = document.getElementById('synAttackTime').value;
+                const threads = document.getElementById('synThreads').value;
+                
+                const data = {
+                    target_ip: targetIp,
+                    target_port: targetPort,
+                    attack_time: attackTime,
+                    threads: threads
+                };
+                
+                // 发送请求执行攻击
+                fetch('/syn_flood', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    const statusBox = document.getElementById('synStatus');
+                    statusBox.style.display = 'block';
+                    
+                    if (result.status === 'success') {
+                        statusBox.className = 'status-box status-success';
+                        statusBox.innerHTML = `<strong>成功：</strong> ${result.message}`;
+                        
+                        // 保存攻击ID
+                        activeSynAttackId = result.attack_id;
+                        
+                        // 显示进度卡片
+                        document.getElementById('synProgressCard').style.display = 'block';
+                        
+                        // 设置目标显示
+                        document.getElementById('synTargetDisplay').textContent = `${targetIp}:${targetPort}`;
+                        
+                        // 重置进度条和统计信息
+                        document.getElementById('synProgressBar').style.width = '0%';
+                        document.getElementById('synProgressBar').textContent = '0%';
+                        document.getElementById('synProgressBar').setAttribute('aria-valuenow', 0);
+                        document.getElementById('synProgressBar').classList.remove('bg-success');
+                        
+                        document.getElementById('synPacketsSent').textContent = '0';
+                        document.getElementById('synRuntime').textContent = '0秒';
+                        document.getElementById('synStatusDisplay').textContent = '运行中';
+                        document.getElementById('synStatusDisplay').classList.add('text-warning');
+                        document.getElementById('synStatusDisplay').classList.remove('text-success');
+                        
+                        // 恢复停止按钮
+                        const synStopBtn = document.getElementById('synStopBtn');
+                        synStopBtn.innerHTML = '<i class="bi bi-stop-circle"></i> 停止攻击';
+                        synStopBtn.className = 'btn btn-warning btn-stop';
+                        synStopBtn.disabled = false;
+                        
+                        // 重新添加停止按钮的事件处理器
+                        addSynStopButtonHandler();
+                        
+                        // 开始状态更新定时器
+                        if (synStatusTimer) clearInterval(synStatusTimer);
+                        synStatusTimer = setInterval(updateSynAttackStatus, STATUS_UPDATE_INTERVAL);
+                    } else {
+                        statusBox.className = 'status-box status-error';
+                        statusBox.innerHTML = `<strong>错误：</strong> ${result.message}`;
+                    }
+                })
+                .catch(error => {
+                    const statusBox = document.getElementById('synStatus');
+                    statusBox.style.display = 'block';
+                    statusBox.className = 'status-box status-error';
+                    statusBox.innerHTML = `<strong>错误：</strong> ${error.message}`;
+                });
+            });
+            
+            // ARP欺骗攻击表单提交
+            document.getElementById('arpSpoofForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // 获取表单数据
+                const targetIp = document.getElementById('arpTargetIp').value;
+                const gatewayIp = document.getElementById('arpGatewayIp').value;
+                const interface = document.getElementById('arpInterface').value;
+                
+                const data = {
+                    target_ip: targetIp,
+                    gateway_ip: gatewayIp,
+                    interface: interface
+                };
+                
+                // 发送请求执行攻击
+                fetch('/arp_spoof', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    const statusBox = document.getElementById('arpStatus');
+                    statusBox.style.display = 'block';
+                    
+                    if (result.status === 'success') {
+                        statusBox.className = 'status-box status-success';
+                        statusBox.innerHTML = `<strong>成功：</strong> ${result.message}`;
+                        
+                        // 保存攻击ID
+                        activeArpAttackId = result.attack_id;
+                        
+                        // 显示进度卡片
+                        document.getElementById('arpProgressCard').style.display = 'block';
+                        
+                        // 设置目标显示
+                        document.getElementById('arpTargetDisplay').textContent = targetIp;
+                        
+                        // 重置统计信息
+                        document.getElementById('arpPacketsSent').textContent = '0';
+                        document.getElementById('arpRuntime').textContent = '0秒';
+                        document.getElementById('arpStatusDisplay').textContent = '运行中';
+                        document.getElementById('arpStatusDisplay').classList.add('text-warning');
+                        document.getElementById('arpStatusDisplay').classList.remove('text-success');
+                        
+                        // 恢复停止按钮
+                        const arpStopBtn = document.getElementById('arpStopBtn');
+                        arpStopBtn.innerHTML = '<i class="bi bi-stop-circle"></i> 停止攻击';
+                        arpStopBtn.className = 'btn btn-warning btn-stop';
+                        arpStopBtn.disabled = false;
+                        
+                        // 重新添加停止按钮的事件处理器
+                        addArpStopButtonHandler();
+                        
+                        // 开始状态更新定时器
+                        if (arpStatusTimer) clearInterval(arpStatusTimer);
+                        arpStatusTimer = setInterval(updateArpAttackStatus, STATUS_UPDATE_INTERVAL);
+                    } else {
+                        statusBox.className = 'status-box status-error';
+                        statusBox.innerHTML = `<strong>错误：</strong> ${result.message}`;
+                    }
+                })
+                .catch(error => {
+                    const statusBox = document.getElementById('arpStatus');
+                    statusBox.style.display = 'block';
+                    statusBox.className = 'status-box status-error';
+                    statusBox.innerHTML = `<strong>错误：</strong> ${error.message}`;
+                });
+            });
+            
+            // 初始化绑定停止按钮事件
+            addSynStopButtonHandler();
+            addArpStopButtonHandler();
+        });
+    </script>
+</body>
+</html> 
